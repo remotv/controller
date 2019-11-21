@@ -21,11 +21,7 @@ terminate=None
 def terminate_controller():
     log.info('Attempting to terminate controller...')
     if terminate != None:
-        # Changing this from terminate to sys.exit stops 
-        # repeat_start from repeating start.
-        
-        #terminate.acquire()
-        sys.exit()
+        terminate.acquire()
 
 
 # TODO : Think about rewriting this, and using request.
