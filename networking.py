@@ -126,26 +126,6 @@ def setupWebSocket(robot_config, onHandleMessage):
     if robot_config.has_option('robot', 'channel'):
         channel = robot_config.get('robot', 'channel')
 
-    bootMessages = robot_config.get('tts', 'boot_message')
-    bootMessageList = bootMessages.split(',')
-    bootMessage = random.choice(bootMessageList)
-
-    if robot_config.has_option('tts', 'announce_ip'):
-        ipAddr = robot_config.getboolean('tts', 'announce_ip')
-    if ipAddr:
-        addr = os.popen("ip -4 addr show wlan0 | grep -oP \'(?<=inet\\s)\\d+(\\.\\d+){3}\'").read().rstrip()
-        log.info('IPv4 Addr : {}'.format(addr))
-        bootMessage = bootMessage + ". My IP address is {}".format(addr)
-
-    if robot_config.has_option('tts', 'announce_out_of_date'):
-        ood = robot_config.getboolean('tts', 'announce_out_of_date')
-    if ood:
-        isOod = os.popen('git fetch && git status').read().rstrip()
-        if "behind" in isOod:
-            commits = re.search(r'\d+(\scommits|\scommit)', isOod)
-            log.warning('Git repo is out of date. Run "git pull" to update.')
-            bootMessage = bootMessage + ". Git repo is behind by {}.".format(commits.group(0))
-
 #    log.info("using socket io to connect to control %s", controlHostPort)
     log.info("configuring web socket wss://%s/" % server)
     webSocket = websocket.WebSocketApp("wss://%s/" % server,
@@ -193,7 +173,7 @@ def internetStatus_task():
     internetStatus = isInternetConnected()
     if internetStatus != lastInternetStatus:
         if internetStatus:
-            tts.say(bootMessage)
+            # tts.say(bootMessage)
             log.info("internet connected")
         else:
             log.info("missing internet connection")
