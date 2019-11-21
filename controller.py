@@ -1,21 +1,27 @@
 from __future__ import print_function
 
+import argparse
+import atexit
+import json
+import logging
+import logging.handlers
+import os.path
+import random
+import re
+import sys
+import time
+import traceback
+from threading import Timer
+
+import networking
+import robot_util
+import schedule
+import tts.tts as tts
+import watchdog
+
 # TODO move all defs to the top of the file, out of the way of the flow of execution.
 # TODO full python3 support will involve installing the adafruit drivers, not using the ones from the repo
 
-import traceback
-import argparse
-import robot_util
-import os.path
-import networking
-import time
-import schedule
-import sys
-import watchdog
-import logging
-import logging.handlers
-import json
-import atexit
 
 if (sys.version_info > (3, 0)):
     import importlib
@@ -24,18 +30,18 @@ else:
     import thread
     # borrowed unregister function from
     # https://stackoverflow.com/questions/32097982/cannot-unregister-functions-from-atexit-in-python-2-7
+
     def unregister(func, *targs, **kargs):
         """unregister a function previously registered with atexit.
            use exactly the same aguments used for before register.
         """
-        for i in range(0,len(atexit._exithandlers)):
-            if (func, targs, kargs) == atexit._exithandlers[i] :
+        for i in range(0, len(atexit._exithandlers)):
+            if (func, targs, kargs) == atexit._exithandlers[i]:
                 del atexit._exithandlers[i]
                 return True
-        return False 
+        return False
     atexit.unregister = unregister
 
-from threading import Timer
 
 # fail gracefully if configparser is not installed
 try:
@@ -45,7 +51,7 @@ except ImportError:
     print("Missing configparser module (python -m pip install configparser)")
     sys.exit()
 
-try: 
+try:
     with open('controller.conf', 'r') as fp:
         robot_config.readfp(fp)
 except IOError:
@@ -54,6 +60,7 @@ except IOError:
 except:
     print ("Error in controller.conf:", sys.exc_info()[0])
     sys.exit()
+
 
 def write(self, config_file):
     sections = 0
@@ -76,22 +83,24 @@ def write(self, config_file):
     for count, line in enumerate(lines):
         temp_line = line.lstrip(' \t')
         if temp_line[0] == '#' or temp_line[0] == ';':
-            continue # comment
+            continue  # comment
         elif temp_line[0] == '[':
             section = temp_line.find(']')
             if sections == -1:
                 errors += 1
-                log.error("ERROR: Unable parse line {} of config as [section] header : '{}'".format(count, line.rstrip('\r\n')))
+                log.error("ERROR: Unable parse line {} of config as [section] header : '{}'".format(
+                    count, line.rstrip('\r\n')))
             else:
-                sections+=1
+                sections += 1
                 section = temp_line[1:section]
         elif temp_line[0] == '\r' or temp_line[0] == '\n':
-            continue # blank line
+            continue  # blank line
         else:
             key = temp_line.find('=')
             if key == -1:
                 errors += 1
-                log.error("ERROR: Unable parse line {} of config as key=value pair : '{}'".format(count, line.rstrip('\r\n')))
+                log.error("ERROR: Unable parse line {} of config as key=value pair : '{}'".format(
+                    count, line.rstrip('\r\n')))
             else:
                 keys += 1
                 key = temp_line[0:key]
@@ -100,13 +109,14 @@ def write(self, config_file):
                 lines[count] = '{}={}\n'.format(key, value)
 
     if sections != sections_in:
-        log.error("ERROR: {} sections in file, {} in object".format(sections, sections_in))
+        log.error("ERROR: {} sections in file, {} in object".format(
+            sections, sections_in))
     if keys != keys_in:
         log.error("ERROR: {} keys in file, {} in object".format(keys, keys_in))
 
     # delete the existing config backup
     if os.path.exists(config_file + '.bak'):
-        os.remove(config_file + '.bak');
+        os.remove(config_file + '.bak')
 
     os.rename(config_file, config_file+'.bak')
 
@@ -117,9 +127,10 @@ def write(self, config_file):
 
     log.info("Config file saved.")
 
+
 ConfigParser.write = write
 
-handlingCommand = False    
+handlingCommand = False
 chat_module = None
 move_handler = None
 
@@ -130,20 +141,25 @@ robot_util.terminate = terminate
 # Enable logging, based upon the settings in the conf file.
 log = logging.getLogger('RemoTV')
 log.setLevel(logging.DEBUG)
-console_handler=logging.StreamHandler()
-console_handler.setLevel(logging.getLevelName(robot_config.get('logging', 'console_level')))
-console_formatter=logging.Formatter('%(asctime)s - %(filename)s : %(message)s','%H:%M:%S')
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.getLevelName(
+    robot_config.get('logging', 'console_level')))
+console_formatter = logging.Formatter(
+    '%(asctime)s - %(filename)s : %(message)s', '%H:%M:%S')
 console_handler.setFormatter(console_formatter)
 try:
-    file_handler=logging.handlers.RotatingFileHandler(robot_config.get('logging', 'log_file'),
-        maxBytes=robot_config.getint('logging', 'max_size'),
-        backupCount=robot_config.getint('logging', 'num_backup'))
+    file_handler = logging.handlers.RotatingFileHandler(robot_config.get('logging', 'log_file'),
+                                                        maxBytes=robot_config.getint(
+                                                            'logging', 'max_size'),
+                                                        backupCount=robot_config.getint('logging', 'num_backup'))
 except IOError:
     print("Error: Unable to write to log files. Check that they not owned by root, and that controller has write permissions to them")
     sys.exit()
-            
-file_handler.setLevel(logging.getLevelName(robot_config.get('logging', 'file_level')))
-file_formatter=logging.Formatter('%(asctime)s %(name)s %(levelname)s - %(message)s','%Y-%m-%d %H:%M:%S')
+
+file_handler.setLevel(logging.getLevelName(
+    robot_config.get('logging', 'file_level')))
+file_formatter = logging.Formatter(
+    '%(asctime)s %(name)s %(levelname)s - %(message)s', '%Y-%m-%d %H:%M:%S')
 file_handler.setFormatter(file_formatter)
 
 log.addHandler(console_handler)
@@ -151,32 +167,47 @@ log.addHandler(file_handler)
 log.critical('RemoTV Controller Starting up')
 
 # Log all unhandled exceptions.
+
+
 def exceptionLogger(exctype, value, tb):
-    log.critical("Unhandled exception of type : {}".format(exctype),exc_info=(exctype, value, tb))
+    log.critical("Unhandled exception of type : {}".format(
+        exctype), exc_info=(exctype, value, tb))
+
+
 sys.excepthook = exceptionLogger
 
 # This is required to allow us to get True / False boolean values from the
-# command line    
+# command line
+
+
 def str2bool(v):
     if v.lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     elif v.lower() in ('no', 'false', 'f', 'n', '0'):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')    
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
-# TODO assess these and other options in the config to see which ones are most 
+
+# TODO assess these and other options in the config to see which ones are most
 # appropriate to be overidden from the command line.
 # check the command line for and config file overrides.
 parser = argparse.ArgumentParser(description='start robot control program')
-parser.add_argument('--robot-key', help='Robot API Key', default=robot_config.get('robot', 'robot_key'))
-parser.add_argument('--type', help="Serial or motor_hat or gopigo2 or gopigo3 or l298n or motozero or pololu", default=robot_config.get('robot', 'type'))
+parser.add_argument('--robot-key', help='Robot API Key',
+                    default=robot_config.get('robot', 'robot_key'))
+parser.add_argument('--type', help="Serial or motor_hat or gopigo2 or gopigo3 or l298n or motozero or pololu",
+                    default=robot_config.get('robot', 'type'))
 parser.add_argument('--video', default=robot_config.get('camera', 'type'))
-parser.add_argument('--custom-hardware', type=str2bool, default=robot_config.getboolean('misc', 'custom_hardware'))
-parser.add_argument('--custom-tts', type=str2bool, default=robot_config.getboolean('misc', 'custom_tts'))
-parser.add_argument('--custom-chat', type=str2bool, default=robot_config.getboolean('misc', 'custom_chat'))
-parser.add_argument('--custom-video', type=str2bool, default=robot_config.getboolean('misc', 'custom_video'))
-parser.add_argument('--ext-chat-command', type=str2bool, default=robot_config.getboolean('tts', 'ext_chat'))
+parser.add_argument('--custom-hardware', type=str2bool,
+                    default=robot_config.getboolean('misc', 'custom_hardware'))
+parser.add_argument('--custom-tts', type=str2bool,
+                    default=robot_config.getboolean('misc', 'custom_tts'))
+parser.add_argument('--custom-chat', type=str2bool,
+                    default=robot_config.getboolean('misc', 'custom_chat'))
+parser.add_argument('--custom-video', type=str2bool,
+                    default=robot_config.getboolean('misc', 'custom_video'))
+parser.add_argument('--ext-chat-command', type=str2bool,
+                    default=robot_config.getboolean('tts', 'ext_chat'))
 
 parser.add_argument('--no-mic', dest='no_mic', action='store_true')
 parser.set_defaults(no_mic=False)
@@ -243,12 +274,13 @@ def handle_message(ws, message):
 #    except Exception as e:
 #        print(e)
 
+
 def handle_chat_message(args):
     log.info("chat message received: %s", args)
 
     if ext_chat:
         extended_command.handler(args)
-            
+
     message = args["message"]
 
     try:
@@ -256,40 +288,44 @@ def handle_chat_message(args):
             tts.say(args)
     except IndexError:
         exit()
-        
+
+
 def handle_command(args):
-        global handlingCommand
-        handlingCommand = True
+    global handlingCommand
+    handlingCommand = True
 
-        # catch move commands that happen before the controller has fully
-        # loaded and set a move handler.
-        if move_handler == None:
-           return
+    # catch move commands that happen before the controller has fully
+    # loaded and set a move handler.
+    if move_handler == None:
+        return
 
-        log.debug('got command : %s', args)
-        move_handler(args)
+    log.debug('got command : %s', args)
+    move_handler(args)
 
-        handlingCommand = False
-       
+    handlingCommand = False
+
 
 def on_handle_command(*args):
-   log.debug("on_handle_command : {} {}".format(handlingCommand, enable_async))
-   if handlingCommand and not enable_async:
-       return
-   else:
-       thread.start_new_thread(handle_command, args)
+    log.debug("on_handle_command : {} {}".format(
+        handlingCommand, enable_async))
+    if handlingCommand and not enable_async:
+        return
+    else:
+        thread.start_new_thread(handle_command, args)
+
 
 def on_handle_chat_message(*args):
-   if chat_module == None:
-       thread.start_new_thread(handle_chat_message, args)
-   else:
-       thread.start_new_thread(chat_module.handle_chat, args)
-   
+    if chat_module == None:
+        thread.start_new_thread(handle_chat_message, args)
+    else:
+        thread.start_new_thread(chat_module.handle_chat, args)
+
+
 def restart_controller(command, args):
-    if extended_command.is_authed(args['sender']) == 2: # Owner
+    if extended_command.is_authed(args['sender']) == 2:  # Owner
         terminate.acquire()
 
-                    
+
 # TODO : This really doesn't belong here, should probably be in start script.
 # watch dog timer
 if robot_config.getboolean('misc', 'watchdog'):
@@ -299,7 +335,6 @@ if robot_config.getboolean('misc', 'watchdog'):
 
 # Load and start TTS
 log.info("Loading tts")
-import tts.tts as tts
 tts.setup(robot_config)
 
 # Connect to the networking sockets
@@ -313,22 +348,25 @@ log.debug("Loading module hardware/%s", commandArgs.type)
 if commandArgs.custom_hardware:
     if os.path.exists('hardware/hardware_custom.py'):
         if (sys.version_info > (3, 0)):
-              module = importlib.import_module('hardware.hardware_custom')
+            module = importlib.import_module('hardware.hardware_custom')
         else:
-            module = __import__('hardware.hardware_custom', fromlist=['hardware_custom'])
+            module = __import__('hardware.hardware_custom',
+                                fromlist=['hardware_custom'])
     else:
-        log.warning("Unable to find hardware/hardware_custom.py")    
+        log.warning("Unable to find hardware/hardware_custom.py")
         if (sys.version_info > (3, 0)):
             module = importlib.import_module('hardware.'+commandArgs.type)
         else:
-            module = __import__("hardware."+commandArgs.type, fromlist=[commandArgs.type])
+            module = __import__("hardware."+commandArgs.type,
+                                fromlist=[commandArgs.type])
 else:
     if (sys.version_info > (3, 0)):
         module = importlib.import_module('hardware.'+commandArgs.type)
     else:
-        module = __import__("hardware."+commandArgs.type, fromlist=[commandArgs.type])
+        module = __import__("hardware."+commandArgs.type,
+                            fromlist=[commandArgs.type])
 
-#call the hardware module setup function
+# call the hardware module setup function
 module.setup(robot_config)
 move_handler = module.move
 
@@ -340,28 +378,31 @@ if commandArgs.custom_video:
         if (sys.version_info > (3, 0)):
             video_module = importlib.import_module('video.video_custom')
         else:
-            video_module = __import__('video.video_custom', fromlist=['video_custom'])
+            video_module = __import__(
+                'video.video_custom', fromlist=['video_custom'])
     else:
-        log.warning("Unable to find video/video_custom.py")    
+        log.warning("Unable to find video/video_custom.py")
         if (sys.version_info > (3, 0)):
             video_module = importlib.import_module('video.'+commandArgs.video)
         else:
-            video_module = __import__("video."+commandArgs.video, fromlist=[commandArgs.video])
+            video_module = __import__(
+                "video."+commandArgs.video, fromlist=[commandArgs.video])
 else:
     if (sys.version_info > (3, 0)):
         video_module = importlib.import_module('video.'+commandArgs.video)
     else:
-        video_module = __import__("video."+commandArgs.video, fromlist=[commandArgs.video])
+        video_module = __import__(
+            "video."+commandArgs.video, fromlist=[commandArgs.video])
 
 # Setup the video encoding
 video_module.setup(robot_config)
 video_module.start()
 
-#load the extended chat commands
+# load the extended chat commands
 if ext_chat:
     log.info("Loading extended chat commands")
     extended_command.setup(robot_config)
-    extended_command.move_handler=move_handler
+    extended_command.move_handler = move_handler
     move_handler = extended_command.move_auth
     extended_command.add_command('.restart', restart_controller)
 
@@ -374,13 +415,38 @@ if commandArgs.custom_chat:
             chat_module = __import__('chat_custom', fromlist=['chat_custom'])
 
         chat_module.setup(robot_config, handle_chat_message)
-    
+
     else:
-       log.warning("Unable to find chat_custom.py")
-    
+        log.warning("Unable to find chat_custom.py")
+
 atexit.register(log.debug, "Attempting to clean up and exit nicely")
 
 log.critical('RemoTV Controller Started')
+
+# Everything is ready to go, announce boot.
+bootMessages = robot_config.get('tts', 'boot_message')
+bootMessageList = bootMessages.split(',')
+bootMessage = random.choice(bootMessageList)
+
+if robot_config.has_option('tts', 'announce_ip'):
+    ipAddr = robot_config.getboolean('tts', 'announce_ip')
+    if ipAddr:
+        addr = os.popen(
+            "ip -4 addr show wlan0 | grep -oP \'(?<=inet\\s)\\d+(\\.\\d+){3}\'").read().rstrip()
+        log.info('IPv4 Addr : {}'.format(addr))
+        bootMessage = bootMessage + ". My IP address is {}".format(addr)
+
+    if robot_config.has_option('tts', 'announce_out_of_date'):
+        ood = robot_config.getboolean('tts', 'announce_out_of_date')
+    if ood:
+        isOod = os.popen('git fetch && git status').read().rstrip()
+        if "behind" in isOod:
+            commits = re.search(r'\d+(\scommits|\scommit)', isOod)
+            log.warning('Git repo is out of date. Run "git pull" to update.')
+            bootMessage = bootMessage + \
+                ". Git repo is behind by {}.".format(commits.group(0))
+tts.say(bootMessage)
+
 while not terminate.locked():
     time.sleep(1)
     watchdog.watch()
