@@ -46,8 +46,8 @@ except ImportError:
     sys.exit()
 
 try: 
-    with open('controller.conf', 'r') as fp:
-        robot_config.readfp(fp)
+    # Values in controller.conf will overwrite values in controller.sample.conf
+    robot_config.read(['controller.sample.conf', 'controller.conf'])
 except IOError:
     print("unable to read controller.conf, please check that you have copied controller.sample.conf to controller.conf and modified it appropriately.")
     sys.exit()
