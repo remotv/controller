@@ -1,0 +1,14 @@
+[Unit]
+After=network.target
+Description=Remo.Tv startup script
+Documentation=https://docs.remo.tv
+
+[Install]
+WantedBy=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/python2 /home/pi/remotv/controller.py
+Restart=on-failure
+RestartSec=10
+Type=simple
+WorkingDirectory=/home/pi/remotv

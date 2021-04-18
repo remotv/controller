@@ -99,65 +99,24 @@ The RasPi will need the following things install so it can talk to your motors a
      - `cozmo_tts`
      - `google_cloud`
 
-## Setting up your start_robot file on the Raspberry Pi
+## Setting up the remotv service on the Raspberry Pi
 
-1. Copy the `start_robot` script to your home directory.
+1. Link the service file to systemctl
 
    ```sh
-   cp ~/remotv/scripts/start_robot ~
+   sudo systemctl link /home/pi/remotv/script/remotv.service
    ```
 
-2. Add the startup script to the `crontab`
+2. Enable the service to run at startup
 
    ```sh
-   crontab -e
+   sudo systemctl enable remotv.service
    ```
 
-   Note: If you accidently use the wrong editor try
+3. Start the service
 
    ```sh
-   EDITOR=nano crontab -e
-   ```
-
-3. Insert the following text at the bottom
-
-   ```sh
-   @reboot /bin/bash /home/pi/start_robot
-   ```
-
-   Example:
-
-   ```sh
-   # Edit this file to introduce tasks to be run by cron.
-   #
-   # Each task to run has to be defined through a single line
-   # indicating with different fields when the task will be run
-   # and what command to run for the task
-   #
-   # To define the time you can provide concrete values for
-   # minute (m), hour (h), day of month (dom), month (mon),
-   # and day of week (dow) or use '*' in these fields (for 'any').#
-   # Notice that tasks will be started based on the cron's system
-   # daemon's notion of time and timezones.
-   #
-   # Output of the crontab jobs (including errors) is sent through
-   # email to the user the crontab file belongs to (unless redirected).
-   #
-   # For example, you can run a backup of all your user accounts
-   # at 5 a.m every week with:
-   # 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
-   #
-   # For more information see the manual pages of crontab(5) and cron(8)
-   #
-   # m h  dom mon dow   command
-
-   @reboot /bin/bash /home/pi/start_robot
-   ```
-
-4. Now just plug in the Camera and USB Speaker and reboot
-
-   ```sh
-   sudo reboot
+   sudo systemctl start remotv.service
    ```
 
 # Hardware Compatibility

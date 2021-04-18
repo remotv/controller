@@ -1,6 +1,0 @@
-#!/bin/bash
-# suggested use for this:
-# (1) use "crontab -e" to create a crontab entry: @reboot /bin/bash /home/pi/start_robot
-
-cd /home/pi/remotv
-nohup scripts/repeat_start python controller.py &> /dev/null &
