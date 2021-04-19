@@ -1,16 +1,13 @@
-import sys
-import robot_util
 import json
+import logging
+import sys
+
+import websocket
+
+import robot_util
 import schedule
 import tts.tts as tts
 import watchdog
-import logging
-import random
-import websocket
-import os
-import re
-import robot_util
-import schedule
 
 if (sys.version_info > (3, 0)):
 #    import _thread as thread
@@ -106,7 +103,6 @@ def checkWebSocket():
 def setupWebSocket(robot_config, onHandleMessage):
     global robot_key
 
-    global bootMessage
     global webSocket
     global server
     global version
@@ -126,26 +122,6 @@ def setupWebSocket(robot_config, onHandleMessage):
     if robot_config.has_option('robot', 'channel'):
         channel = robot_config.get('robot', 'channel')
 
-    bootMessages = robot_config.get('tts', 'boot_message')
-    bootMessageList = bootMessages.split(',')
-    bootMessage = random.choice(bootMessageList)
-
-    if robot_config.has_option('tts', 'announce_ip'):
-        ipAddr = robot_config.getboolean('tts', 'announce_ip')
-    if ipAddr:
-        addr = os.popen("ip -4 addr show wlan0 | grep -oP \'(?<=inet\\s)\\d+(\\.\\d+){3}\'").read().rstrip()
-        log.info('IPv4 Addr : {}'.format(addr))
-        bootMessage = bootMessage + ". My IP address is {}".format(addr)
-
-    if robot_config.has_option('tts', 'announce_out_of_date'):
-        ood = robot_config.getboolean('tts', 'announce_out_of_date')
-    if ood:
-        isOod = os.popen('git fetch && git status').read().rstrip()
-        if "behind" in isOod:
-            commits = re.search(r'\d+(\scommits|\scommit)', isOod)
-            log.warning('Git repo is out of date. Run "git pull" to update.')
-            bootMessage = bootMessage + ". Git repo is behind by {}.".format(commits.group(0))
-
 #    log.info("using socket io to connect to control %s", controlHostPort)
     log.info("configuring web socket wss://%s/" % server)
     webSocket = websocket.WebSocketApp("wss://%s/" % server,
@@ -156,7 +132,7 @@ def setupWebSocket(robot_config, onHandleMessage):
     log.info("staring websocket listen process")
     startListenForWebSocket()
 
-    schedule.single_task(5, checkWebSocket)
+    schedule.single_task(10, checkWebSocket)
     
     if robot_config.getboolean('misc', 'check_internet'):
         #schedule a task to check internet status
@@ -186,14 +162,12 @@ def isInternetConnected():
 lastInternetStatus = False
 
 def internetStatus_task():
-    global bootMessage
     global lastInternetStatus
     global internetStatus
 
     internetStatus = isInternetConnected()
     if internetStatus != lastInternetStatus:
         if internetStatus:
-            tts.say(bootMessage)
             log.info("internet connected")
         else:
             log.info("missing internet connection")

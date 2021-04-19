@@ -9,6 +9,9 @@ WantedBy=multi-user.target
 [Service]
 ExecStart=/usr/bin/python2 /home/pi/remotv/controller.py
 Restart=on-failure
-RestartSec=10
+RestartSec=1
+StartLimitBurst=5
+StartLimitInterval=60
+SyslogIdentifier=remo-controller
 Type=simple
 WorkingDirectory=/home/pi/remotv
