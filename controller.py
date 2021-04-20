@@ -2,8 +2,7 @@ from __future__ import print_function
 
 # TODO move all defs to the top of the file, out of the way of the flow of execution.
 # TODO full python3 support will involve installing the adafruit drivers, not using the ones from the repo
-import random
-import re
+
 import traceback
 import argparse
 import robot_util
@@ -245,30 +244,10 @@ def handle_message(ws, message):
 
     elif event == "ROBOT_VALIDATED":
         networking.handleConnectChatChannel(data["host"])
-    elif event == "SEND_CHAT":
-        # At this point the bot is fully online and ready for commands. Therefore it's boot message time.
-        log.info("Robot online and ready for action")
-        bootMessages = robot_config.get('tts', 'boot_message')
-        bootMessageList = bootMessages.split(',')
-        bootMessage = random.choice(bootMessageList)
-        ipAddr = False
-        ood = False
-        if robot_config.has_option('tts', 'announce_ip'):
-            ipAddr = robot_config.getboolean('tts', 'announce_ip')
-        if ipAddr:
-            addr = os.popen("ip -4 addr show wlan0 | grep -oP \'(?<=inet\\s)\\d+(\\.\\d+){3}\'").read().rstrip()
-            log.info('IPv4 Addr : {}'.format(addr))
-            bootMessage = bootMessage + ". My IP address is {}".format(addr)
 
-        if robot_config.has_option('tts', 'announce_out_of_date'):
-            ood = robot_config.getboolean('tts', 'announce_out_of_date')
-        if ood:
-            isOod = os.popen('git fetch && git status').read().rstrip()
-            if "behind" in isOod:
-                commits = re.search(r'\d+(\scommits|\scommit)', isOod)
-                log.warning('Git repo is out of date. Run "git pull" to update.')
-                bootMessage = bootMessage + ". Git repo is behind by {}.".format(commits.group(0))
-        tts.say(bootMessage)
+    elif event == "SEND_CHAT":
+        pass
+
     else:
         log.error("Unknown event type")
 
