@@ -203,7 +203,7 @@ def video():
             time.sleep(1)
 
 
-        p = Popen([ffmpeg_location, '-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', '25', '-i', '-', '-vcodec', 'mpeg1video', '-r', '25', "-f", "mpegts", "\"Authorization: Bearer {}\"".format(robotKey), "http://{}:1567/transmit?name={}-video".format(server, networking.channel_id)], stdin=PIPE)
+        p = Popen([ffmpeg_location, '-y', '-f', 'image2pipe', '-vcodec', 'png', '-r', '25', '-i', '-', '-vcodec', 'mpeg1video', '-r', '25', "-f", "mpegts", "-headers", "\"Authorization: Bearer {}\"".format(robotKey), "http://{}:1567/transmit?name={}-video".format(server, networking.channel_id)], stdin=PIPE)
        
         try:
             while True:
