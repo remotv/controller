@@ -156,7 +156,7 @@ def setupWebSocket(robot_config, onHandleMessage):
     log.info("staring websocket listen process")
     startListenForWebSocket()
 
-    schedule.single_task(5, checkWebSocket)
+    schedule.single_task(10, checkWebSocket)
     
     if robot_config.getboolean('misc', 'check_internet'):
         #schedule a task to check internet status

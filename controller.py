@@ -132,7 +132,7 @@ log = logging.getLogger('RemoTV')
 log.setLevel(logging.DEBUG)
 console_handler=logging.StreamHandler()
 console_handler.setLevel(logging.getLevelName(robot_config.get('logging', 'console_level')))
-console_formatter=logging.Formatter('%(asctime)s - %(filename)s : %(message)s','%H:%M:%S')
+console_formatter=logging.Formatter('%(asctime)s - %(filename)s[%(lineno)d]: %(message)s','%H:%M:%S')
 console_handler.setFormatter(console_formatter)
 try:
     file_handler=logging.handlers.RotatingFileHandler(robot_config.get('logging', 'log_file'),
@@ -244,6 +244,9 @@ def handle_message(ws, message):
 
     elif event == "ROBOT_VALIDATED":
         networking.handleConnectChatChannel(data["host"])
+
+    elif event == "SEND_CHAT":
+        pass
 
     else:
         log.error("Unknown event type")
