@@ -16,7 +16,7 @@ The RasPi will need the following things install so it can talk to your motors a
    ```sh
    sudo apt update
    sudo apt upgrade -y
-   sudo apt install ffmpeg python-serial python-dev libgnutls28-dev espeak python-smbus python-pip git
+   sudo apt install ffmpeg python3-serial python3-dev libgnutls28-dev espeak python3-smbus python3-pip git
    ```
 
 2. Download the remotv control scripts from our github
@@ -28,7 +28,7 @@ The RasPi will need the following things install so it can talk to your motors a
 3. Install python requirements
 
    ```sh
-   sudo python -m pip install -r ~/remotv/requirements.txt
+   sudo python3 -m pip install -r ~/remotv/requirements.txt
    ```
 
 4. Open the new `remotv` directory

@@ -1,1 +1,1 @@
-sudo killall /bin/bash python ffmpeg
+sudo killall /bin/bash python3 ffmpeg
