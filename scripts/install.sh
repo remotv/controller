@@ -59,7 +59,9 @@ sudo apt-get upgrade --assume-yes
 sudo apt-get install ffmpeg python3-serial python3-dev libgnutls28-dev espeak python3-smbus python3-pip git --assume-yes
 
 git clone https://github.com/remotv/controller.git $REPO_DIR
-python -m pip install -r $REPO_DIR/requirements.txt
+python3 -m venv $REPO_DIR/.venv
+source $REPO_DIR/.venv/bin/activate
+python3 -m pip install -r $REPO_DIR/requirements.txt
 cp $REPO_DIR/controller.sample.conf $CONF_FILE
 
 do_robot_owner

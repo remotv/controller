@@ -2,5 +2,6 @@
 # suggested use for this:
 # (1) use "crontab -e" to create a crontab entry: @reboot /bin/bash /home/pi/start_robot
 
-cd /home/pi/remotv
+cd /home/$USER/remotv
+source .venv/bin/activate
 nohup scripts/repeat_start python3 controller.py &> /dev/null &
