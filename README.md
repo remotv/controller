@@ -37,6 +37,12 @@ The RasPi will need the following things install so it can talk to your motors a
    python3 -m venv .venv && source .venv/bin/activate
    ```
 
+   Optionally, add the environment to your .bashrc
+
+   ```sh
+   echo "export PATH=\"/home/your_username/remotv/.venv/bin:\$PATH\"" >> ~/.bashrc
+   ```
+
 5. Install python requirements
 
    ```sh
