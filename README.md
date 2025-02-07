@@ -16,7 +16,7 @@ The RasPi will need the following things install so it can talk to your motors a
    ```sh
    sudo apt update
    sudo apt upgrade -y
-   sudo apt install ffmpeg python-serial python-dev libgnutls28-dev espeak python-smbus python-pip git
+   sudo apt install ffmpeg python3-serial python3-dev libgnutls28-dev espeak python3-smbus python3-pip git
    ```
 
 2. Download the remotv control scripts from our github
@@ -25,19 +25,31 @@ The RasPi will need the following things install so it can talk to your motors a
    git clone https://github.com/remotv/controller.git ~/remotv
    ```
 
-3. Install python requirements
-
-   ```sh
-   sudo python -m pip install -r ~/remotv/requirements.txt
-   ```
-
-4. Open the new `remotv` directory
+3. Open the new `remotv` directory
 
    ```sh
    cd remotv
    ```
 
-5. Copy `controller.sample.conf` to `controller.conf`
+4. Create and activate a new python3 virtual environment
+
+   ```sh
+   python3 -m venv .venv && source .venv/bin/activate
+   ```
+
+   Optionally, add the environment to your .bashrc
+
+   ```sh
+   echo "export PATH=\"/home/your_username/remotv/.venv/bin:\$PATH\"" >> ~/.bashrc
+   ```
+
+5. Install python requirements
+
+   ```sh
+   python3 -m pip install -r requirements.txt
+   ```
+
+6. Copy `controller.sample.conf` to `controller.conf`
 
    ```sh
    cp controller.sample.conf controller.conf
@@ -125,6 +137,8 @@ The RasPi will need the following things install so it can talk to your motors a
    @reboot /bin/bash /home/pi/start_robot
    ```
 
+   If your username is different than the default "pi", make sure to change it here.
+
    Example:
 
    ```sh
@@ -151,7 +165,7 @@ The RasPi will need the following things install so it can talk to your motors a
    #
    # m h  dom mon dow   command
 
-   @reboot /bin/bash /home/pi/start_robot
+   @reboot /bin/bash /home/username_here/start_robot
    ```
 
 4. Now just plug in the Camera and USB Speaker and reboot
